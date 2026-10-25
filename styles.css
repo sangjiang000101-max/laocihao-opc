@@ -264,3 +264,79 @@ h1 .hl{background:var(--acid);padding:0 8px;box-shadow:4px 4px 0 var(--ink)}
 .site-footer p{color:#aeb3aa;font-size:12px;line-height:1.8;margin:8px 0 0;max-width:760px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
 .toast.show{opacity:1}
+
+/* ============ 手机端 H5 适配（≤760px，置末确保覆盖生效） ============ */
+@media(max-width:760px){
+  /* 顶栏：品牌一行、导航可横滑 */
+  .topbar{height:auto;min-height:58px;flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .brand{gap:8px}
+  .brand-mark{width:30px;height:30px;font-size:15px}
+  .brand-name{font-size:15px;letter-spacing:.04em}
+  .brand-sub{display:none}
+  .nav{order:3;width:100%;overflow-x:auto;gap:16px;margin-right:0;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav button{padding:4px 0 10px;font-size:13px;white-space:nowrap}
+  .nav button.active:after{bottom:3px;height:4px}
+
+  /* 页面骨架 */
+  .page{padding:22px 14px 60px}
+  .hero{padding:24px 0 18px}
+  h1{font-size:clamp(27px,8vw,40px)}
+  .lead{font-size:14px;line-height:1.75}
+  .hero-stats{gap:8px}
+  .stat{padding:10px 14px;box-shadow:3px 3px 0 var(--ink)}
+  .stat b{font-size:22px}
+
+  /* 首页双入口与企业卡 */
+  .entry-grid{gap:12px;margin-bottom:20px}
+  .entry-card{padding:18px 20px;box-shadow:5px 5px 0 var(--ink)}
+  .entry-card h2{font-size:22px}
+  .co-grid{gap:12px}
+  .co-sum{min-height:0}
+
+  /* 需求库筛选与卡片 */
+  .lab-filter{box-shadow:4px 4px 0 var(--ink)}
+  .chip-row{grid-template-columns:1fr;gap:6px;padding:10px 14px}
+  .chip{padding:8px 12px;font-size:12px}
+  .kw{max-width:none;width:100%}
+  .need-grid{grid-template-columns:1fr;gap:12px}
+  .need-head{grid-template-columns:64px 1fr}
+  .need-body .two-col{grid-template-columns:1fr}
+  .need-quote{margin:10px 12px 0}
+  .need-body{padding:10px 12px 12px}
+  .need-foot{padding:8px 12px}
+
+  /* 企业页 */
+  .co-hero{padding:20px 18px;box-shadow:6px 6px 0 var(--acid)}
+  .co-hero:after{width:180px;height:180px;right:-90px;top:-100px;border-width:34px}
+  .co-hero-row h1{font-size:26px;margin:8px 0 4px}
+  .co-mark-lg{width:52px;height:52px}
+  .dim-grid{gap:12px;margin-top:18px}
+  .dim-card{box-shadow:4px 4px 0 var(--ink)}
+  .depth-banner{padding:16px 18px;box-shadow:4px 4px 0 var(--ink)}
+  .depth-banner h2{font-size:18px}
+  .layer-head h2{font-size:19px}
+  .layer-no{width:28px;height:28px;font-size:12px}
+
+  /* 弹窗 */
+  .modal{padding:18px;max-height:92vh}
+  .modal-lg{max-width:none}
+  .fi-fb-row{grid-template-columns:1fr;gap:4px}
+  .fi-fb-check{padding-top:0}
+
+  /* 对话区 */
+  .chat-shell{box-shadow:4px 4px 0 var(--ink)}
+  .chat-topbar{font-size:12px;padding:8px 12px}
+  .chat-flow{height:50vh;min-height:300px;padding:14px 12px}
+  .msg{max-width:92%;font-size:13px;padding:10px 12px}
+  .chat-nav{position:static;display:flex;flex-direction:row;gap:8px;padding:8px 12px 0;justify-items:start}
+  .chat-nav-btn{font-size:11px;padding:5px 10px}
+  .chat-nav-select{max-width:150px}
+  .chat-inputbar{padding:8px 10px}
+  .chat-inputbar input{padding:9px 10px}
+  .chat-inputbar .btn{padding:9px 12px;margin-top:0;white-space:nowrap}
+  .diag-card{padding:12px 14px}
+
+  /* 页脚 */
+  .site-footer{padding:24px 16px}
+}
