@@ -226,6 +226,28 @@
     return true;
   }
 
+  function matchTalents(scene) {
+    const tags = (typeof SCENE_TAG_MAP !== "undefined" && SCENE_TAG_MAP[scene]) || [];
+    if (!tags.length || typeof TALENTS === "undefined") return [];
+    return TALENTS
+      .map((t) => ({ t, hit: (t.tags || []).filter((g) => tags.includes(g)).length }))
+      .filter((x) => x.hit > 0)
+      .sort((a, b) => b.hit - a.hit || (b.t.score || 0) - (a.t.score || 0))
+      .slice(0, 3)
+      .map((x) => x.t);
+  }
+
+  function matchSection(n) {
+    const ms = matchTalents(n.scene);
+    if (!ms.length) return `<div class="match-sec match-none">该场景暂无标签对口人才，可联系管理员定向补库</div>`;
+    return `<div class="match-sec"><b>可承接 OPC（标签匹配 · 评分优先）</b>${ms.map((t) => `
+      <div class="match-row" onclick="event.stopPropagation();openTalent('${esc(t.id)}')">
+        <span class="match-name">${esc(t.name)}</span>
+        <span class="match-title">${esc(t.title)}</span>
+        <span class="match-city">${esc(t.city)} · 评分 ${esc(String(t.score || "-"))}</span>
+      </div>`).join("")}</div>`;
+  }
+
   function needCard(n) {
     const foot = n.pending
       ? `<div class="need-foot"><span class="status-pending">审核中 · 暂不可对接</span></div>`
@@ -239,6 +261,7 @@
         <div class="row"><b>平台建议</b>${esc(n.suggestion)}</div>
         <div class="row two-col"><span><b>企业预算</b>${esc(n.budget)}</span><span><b>预计周期</b>${esc(n.period)}</span></div>
       </div>
+      ${matchSection(n)}
       ${foot}
     </article>`;
   }
