@@ -66,7 +66,7 @@
         <nav class="nav">
           <button class="${active === "home" ? "active" : ""}" onclick="location.hash='#/'">首页</button>
           <button class="${active === "lab" ? "active" : ""}" onclick="location.hash='#/lab'">企业需求库</button>
-          <button onclick="window.open('https://fox2043.github.io/ai-zhisheng-talent-index/','_blank','noopener')">OPC 人才库 ↗</button>
+          <button class="${active === "talents" ? "active" : ""}" onclick="location.hash='#/talents'">OPC 人才库</button>
           <button class="${active === "dig" ? "active" : ""}" onclick="location.hash='#/dig'">提交企业需求</button>
         </nav>
       </header>
@@ -102,7 +102,7 @@
           <p>首批 ${COMPANIES.length} 家老字号 · ${needs.length} 条结构化需求，按行业、领域、场景检索</p>
           <b>进入 →</b>
         </div>
-        <div class="entry-card entry-alt" onclick="window.open('https://fox2043.github.io/ai-zhisheng-talent-index/','_blank','noopener')">
+        <div class="entry-card entry-alt" onclick="location.hash='#/talents'">
           <span class="entry-kicker">供给侧</span>
           <h2>OPC 人才库</h2>
           <p>全国 AI 人才可信档案：按能力标签、城市、案例与权威报道查证能落地的 OPC</p>
@@ -795,6 +795,118 @@
     window.scrollTo(0, 0);
   }
 
+  /* ---------- OPC 人才库（原生页，数据源自合作方可信档案库） ---------- */
+  const tstate = { tag: "", city: "", kw: "" };
+
+  function talentsPage() {
+    const tagCount = {}, cityCount = {};
+    TALENTS.forEach((t) => {
+      (t.tags || []).forEach((g) => { tagCount[g] = (tagCount[g] || 0) + 1; });
+      cityCount[t.city] = (cityCount[t.city] || 0) + 1;
+    });
+    const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 14).map((x) => x[0]);
+    const cities = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).slice(0, 12).map((x) => x[0]);
+    const body = `
+    <main class="page">
+      <section class="hero" style="padding-bottom:8px">
+        <div class="eyebrow">OPC 人才库</div>
+        <h1 style="font-size:clamp(30px,4vw,46px)">OPC 人才库</h1>
+        <p class="lead" style="font-size:15px">合作方可信档案：每位人才均有公开来源与证据链。按能力标签、城市、关键词检索。</p>
+        <div class="hero-stats">
+          <div class="stat s1"><b>${TALENTS.length}</b><span>在库人才</span></div>
+          <div class="stat s2"><b>${Object.keys(cityCount).length}</b><span>覆盖城市</span></div>
+          <div class="stat s3"><b>${Object.keys(tagCount).length}</b><span>能力标签</span></div>
+        </div>
+      </section>
+      <div class="lab-filter">
+        <div class="chip-row"><span class="chip-label">能力标签</span>
+          <div class="chips" id="chips-tag">
+            <button class="chip ${!tstate.tag ? "on" : ""}" data-v="">全部</button>
+            ${tags.map((g) => `<button class="chip ${tstate.tag === g ? "on" : ""}" data-v="${esc(g)}">${esc(g)}</button>`).join("")}
+          </div>
+        </div>
+        <div class="chip-row"><span class="chip-label">城市</span>
+          <div class="chips" id="chips-city">
+            <button class="chip ${!tstate.city ? "on" : ""}" data-v="">全部</button>
+            ${cities.map((c) => `<button class="chip ${tstate.city === c ? "on" : ""}" data-v="${c}">${c}</button>`).join("")}
+          </div>
+        </div>
+        <div class="chip-row"><span class="chip-label">关键词</span>
+          <input id="t-kw" class="kw" placeholder="搜姓名 / 头衔 / 简介…" value="${esc(tstate.kw)}"/>
+        </div>
+      </div>
+      <p class="lab-count" id="tal-count"></p>
+      <section class="tal-grid" id="tal-grid"></section>
+    </main>`;
+    $app.innerHTML = shell(body, "talents");
+    document.getElementById("chips-tag").onclick = (e) => { tchipPick(e, "tag"); renderTalents(); };
+    document.getElementById("chips-city").onclick = (e) => { tchipPick(e, "city"); renderTalents(); };
+    document.getElementById("t-kw").oninput = (e) => { tstate.kw = e.target.value.trim(); renderTalents(); };
+    renderTalents();
+    window.scrollTo(0, 0);
+  }
+
+  function tchipPick(e, key) {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    tstate[key] = btn.dataset.v;
+    btn.parentElement.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === btn));
+  }
+
+  function matchTalent(t) {
+    if (tstate.tag && !(t.tags || []).includes(tstate.tag)) return false;
+    if (tstate.city && t.city !== tstate.city) return false;
+    if (tstate.kw) {
+      const hay = (t.name + t.title + t.summary).toLowerCase();
+      if (!hay.includes(tstate.kw.toLowerCase())) return false;
+    }
+    return true;
+  }
+
+  function renderTalents() {
+    const list = TALENTS.filter(matchTalent);
+    document.getElementById("tal-count").textContent = `共 ${list.length} 位人才`;
+    document.getElementById("tal-grid").innerHTML = list.length ? list.map((t) => `
+      <article class="tal-card" onclick="openTalent('${esc(t.id)}')">
+        <div class="co-head">
+          <div class="co-mark">${esc(t.name[0] || "·")}</div>
+          <div><h2>${esc(t.name)}</h2><small>${esc(t.title)}</small></div>
+        </div>
+        <div class="co-tags">
+          <span class="tag ind">${esc(t.city)}</span>
+          ${(t.tags || []).slice(0, 3).map((g) => `<span class="tag lay">${esc(g)}</span>`).join("")}
+        </div>
+        <p class="co-sum">${esc((t.summary || "").slice(0, 60))}${(t.summary || "").length > 60 ? "…" : ""}</p>
+        <div class="co-foot">
+          <span>评分 <b>${esc(String(t.score || "-"))}</b>${t.verified ? ' · <span class="status-open">有官方证据</span>' : ""}</span>
+          <span class="co-enter">查看 →</span>
+        </div>
+      </article>`).join("") : `<p style="grid-column:1/-1;color:var(--muted)">没有命中的人才，请放宽筛选条件。</p>`;
+  }
+
+  function openTalent(id) {
+    const t = TALENTS.find((x) => x.id === id);
+    if (!t) return;
+    const old = document.getElementById("modal-mask");
+    if (old) old.remove();
+    const mask = document.createElement("div");
+    mask.id = "modal-mask";
+    mask.className = "modal-mask";
+    mask.innerHTML = `
+      <div class="modal modal-lg" role="dialog" aria-modal="true">
+        <h3>${esc(t.name)}</h3>
+        <p style="margin-top:0"><b>${esc(t.title)}</b> · ${esc(t.city)} · 评分 ${esc(String(t.score || "-"))}${t.verified ? " · 有官方证据" : ""}</p>
+        <div class="co-tags" style="padding:0">${(t.tags || []).map((g) => `<span class="tag lay">${esc(g)}</span>`).join("")}</div>
+        <p style="margin-top:12px">${esc(t.summary || "")}</p>
+        ${t.works && t.works.length ? `<p style="margin:12px 0 4px"><b>公开案例</b></p><ul class="fi-ol">${t.works.map((w) => `<li>${w.url ? `<a class="source-link" href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title)}</a>` : esc(w.title)}</li>`).join("")}</ul>` : ""}
+        <button class="btn dark" id="tal-close" style="width:100%;margin-top:14px">关闭</button>
+      </div>`;
+    mask.onclick = (e) => { if (e.target === mask) mask.remove(); };
+    document.body.appendChild(mask);
+    document.getElementById("tal-close").onclick = () => mask.remove();
+  }
+  window.openTalent = openTalent; // 供人才卡内联事件使用
+
   /* ---------- 路由 ---------- */
   function route() {
     // 路由切换时清理残留弹窗遮罩（防跨页点击失效）
@@ -805,6 +917,7 @@
     if (m) return m[2] ? depthPage(m[1]) : companyPage(m[1]);
     if (h === "#/lab") return labPage();
     if (h === "#/dig") return digPage();
+    if (h === "#/talents") return talentsPage();
     homePage();
   }
   window.addEventListener("hashchange", route);
