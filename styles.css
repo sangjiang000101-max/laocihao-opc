@@ -358,3 +358,11 @@ h1 .hl{background:var(--acid);padding:0 8px;box-shadow:4px 4px 0 var(--ink)}
 @media(max-width:1100px){.tal-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.tal-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.tal-grid{grid-template-columns:1fr}}
+
+/* 人才详情证据链 */
+.evd-sec{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.evd-sec>b{font-size:11px;letter-spacing:.12em;color:var(--blue)}
+.evd-sec p{margin:6px 0 0;font-size:13.5px;line-height:1.8}
+.evd-src p{color:var(--muted);font-size:12px}
+.source-link{color:#243bd1;font-weight:800;text-decoration:none}
+.source-link:hover{text-decoration:underline}
