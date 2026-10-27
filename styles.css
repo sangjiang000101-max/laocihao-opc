@@ -340,3 +340,21 @@ h1 .hl{background:var(--acid);padding:0 8px;box-shadow:4px 4px 0 var(--ink)}
   /* 页脚 */
   .site-footer{padding:24px 16px}
 }
+
+/* OPC 人才库 */
+.tal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.tal-card{background:var(--card);border:1px solid var(--ink);cursor:pointer;transition:.2s;overflow:hidden}
+.tal-card:hover{transform:translate(-3px,-3px);box-shadow:var(--shadow)}
+.tal-card:nth-child(4n+1){border-top:7px solid var(--cyan)}
+.tal-card:nth-child(4n+2){border-top:7px solid var(--yellow)}
+.tal-card:nth-child(4n+3){border-top:7px solid var(--pink)}
+.tal-card:nth-child(4n){border-top:7px solid var(--blue)}
+.tal-card .co-head{padding:13px 14px 8px}
+.tal-card .co-head h2{font-size:17px}
+.tal-card .co-mark{width:36px;height:36px;font-size:16px}
+.tal-card .co-tags{padding:0 14px}
+.tal-card .co-sum{padding:9px 14px 11px;min-height:58px;font-size:12px}
+.tal-card .co-foot{padding:8px 14px;font-size:11px}
+@media(max-width:1100px){.tal-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.tal-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.tal-grid{grid-template-columns:1fr}}
