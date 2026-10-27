@@ -892,13 +892,18 @@
     const mask = document.createElement("div");
     mask.id = "modal-mask";
     mask.className = "modal-mask";
+    const linkList = (arr) => arr.map((w) => `<li>${w.url ? `<a class="source-link" href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title)} ↗</a>` : esc(w.title)}</li>`).join("");
     mask.innerHTML = `
       <div class="modal modal-lg" role="dialog" aria-modal="true">
         <h3>${esc(t.name)}</h3>
-        <p style="margin-top:0"><b>${esc(t.title)}</b> · ${esc(t.city)} · 评分 ${esc(String(t.score || "-"))}${t.verified ? " · 有官方证据" : ""}</p>
+        <p style="margin-top:0"><b>${esc(t.title)}</b> · ${esc(t.city)} · 评分 ${esc(String(t.score || "-"))}${t.verified ? " · <span class='status-open'>有官方证据</span>" : ""}</p>
         <div class="co-tags" style="padding:0">${(t.tags || []).map((g) => `<span class="tag lay">${esc(g)}</span>`).join("")}</div>
-        <p style="margin-top:12px">${esc(t.summary || "")}</p>
-        ${t.works && t.works.length ? `<p style="margin:12px 0 4px"><b>公开案例</b></p><ul class="fi-ol">${t.works.map((w) => `<li>${w.url ? `<a class="source-link" href="${esc(w.url)}" target="_blank" rel="noopener">${esc(w.title)}</a>` : esc(w.title)}</li>`).join("")}</ul>` : ""}
+        <div class="evd-sec"><b>简介</b><p>${esc(t.summary || "")}</p></div>
+        ${t.works && t.works.length ? `<div class="evd-sec"><b>公开案例</b><ul class="fi-ol">${linkList(t.works)}</ul></div>` : ""}
+        ${t.achievements && t.achievements.length ? `<div class="evd-sec"><b>获奖与成就</b><ul class="fi-ol">${linkList(t.achievements)}</ul></div>` : ""}
+        <div class="evd-sec evd-src"><b>证据链</b>
+          <p>${t.verified ? "已通过官方公开来源核验" : "公开来源待复核"}${t.sources && t.sources.length ? " · 来源：" + t.sources.map(esc).join("、") : ""}${t.updatedAt ? " · 数据更新：" + esc(String(t.updatedAt).slice(0, 10)) : ""}</p>
+        </div>
         <button class="btn dark" id="tal-close" style="width:100%;margin-top:14px">关闭</button>
       </div>`;
     mask.onclick = (e) => { if (e.target === mask) mask.remove(); };
