@@ -376,4 +376,15 @@ h1 .hl{background:var(--acid);padding:0 8px;box-shadow:4px 4px 0 var(--ink)}
 .match-title{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .match-city{font-size:11px;font-weight:700;white-space:nowrap}
 .match-none{color:var(--muted);font-size:12px}
+.match-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.match-reason{font-size:11px;color:var(--blue);font-weight:700;line-height:1.5}
+.match-exp{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* OPC 人才登记 */
+.join-shell{border:1px solid var(--ink);background:var(--card);box-shadow:var(--shadow);padding:24px 26px;margin-top:6px}
+.join-shell .kw.jw{max-width:none;width:100%}
+.join-shell .f-row{display:grid;gap:6px;margin-bottom:14px;font-size:13px;font-weight:700}
+.jwork{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:8px}
+.tal-card.pending{opacity:.6;cursor:default;border-top-color:#9a9a92}
+.tal-card.pending:hover{transform:none;box-shadow:none}
 @media(max-width:760px){.match-row{grid-template-columns:1fr;gap:2px}}

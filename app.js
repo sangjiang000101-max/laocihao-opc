@@ -14,7 +14,9 @@
     get intake() { try { return JSON.parse(localStorage.getItem("lni-intake") || "null"); } catch { return null; } },
     set intake(v) { localStorage.setItem("lni-intake", JSON.stringify(v)); },
     get feedback() { try { return JSON.parse(localStorage.getItem("lni-feedback") || "null"); } catch { return null; } },
-    set feedback(v) { localStorage.setItem("lni-feedback", JSON.stringify(v)); }
+    set feedback(v) { localStorage.setItem("lni-feedback", JSON.stringify(v)); },
+    get talentPending() { try { return JSON.parse(localStorage.getItem("lni-talent-pending") || "[]"); } catch { return []; } },
+    set talentPending(v) { localStorage.setItem("lni-talent-pending", JSON.stringify(v)); }
   };
   const allNeeds = () => COMPANIES.flatMap((c) => c.needs.filter((n) => n.visible).map((n) => ({ ...n, co: c })));
   const pendingNeeds = () => store.pending.flatMap((p) => p.needs.map((n) => ({ ...n, co: p.co, pending: true })));
@@ -67,6 +69,7 @@
           <button class="${active === "home" ? "active" : ""}" onclick="location.hash='#/'">首页</button>
           <button class="${active === "lab" ? "active" : ""}" onclick="location.hash='#/lab'">企业需求库</button>
           <button class="${active === "talents" ? "active" : ""}" onclick="location.hash='#/talents'">OPC 人才库</button>
+          <button class="${active === "join" ? "active" : ""}" onclick="location.hash='#/join'">OPC 人才登记</button>
           <button class="${active === "dig" ? "active" : ""}" onclick="location.hash='#/dig'">提交企业需求</button>
         </nav>
       </header>
@@ -226,26 +229,44 @@
     return true;
   }
 
-  function matchTalents(scene) {
-    const tags = (typeof SCENE_TAG_MAP !== "undefined" && SCENE_TAG_MAP[scene]) || [];
+  function matchTalents(n) {
+    const tags = (typeof SCENE_TAG_MAP !== "undefined" && SCENE_TAG_MAP[n.scene]) || [];
     if (!tags.length || typeof TALENTS === "undefined") return [];
+    const onsite = n.mode === "F" || n.mode === "S";
+    const coCity = (n.co && n.co.city) || "上海";
     return TALENTS
-      .map((t) => ({ t, hit: (t.tags || []).filter((g) => tags.includes(g)).length }))
+      .map((t) => {
+        const hitTags = (t.tags || []).filter((g) => tags.includes(g));
+        return { t, hit: hitTags.length, hitTags, sameCity: t.city === coCity };
+      })
       .filter((x) => x.hit > 0)
-      .sort((a, b) => b.hit - a.hit || (b.t.score || 0) - (a.t.score || 0))
-      .slice(0, 3)
-      .map((x) => x.t);
+      .sort((a, b) => b.hit - a.hit || (onsite ? (b.sameCity ? 1 : 0) - (a.sameCity ? 1 : 0) : 0) || (b.t.score || 0) - (a.t.score || 0))
+      .slice(0, 3);
   }
 
   function matchSection(n) {
-    const ms = matchTalents(n.scene);
-    if (!ms.length) return `<div class="match-sec match-none">该场景暂无标签对口人才，可联系管理员定向补库</div>`;
-    return `<div class="match-sec"><b>可承接 OPC（标签匹配 · 评分优先）</b>${ms.map((t) => `
+    const ms = matchTalents(n);
+    if (!ms.length) return `<div class="match-sec match-none">暂无合适的在库 OPC · 可联系管理员定向补库</div>`;
+    const onsite = n.mode === "F" || n.mode === "S";
+    const coCity = (n.co && n.co.city) || "上海";
+    return `<div class="match-sec"><b>推荐承接 OPC（赛道匹配 · ${onsite ? "同城优先" : "可远程"} · 评分排序）</b>${ms.map((x) => {
+      const t = x.t;
+      const reasons = [];
+      reasons.push("赛道：" + x.hitTags.slice(0, 3).join("、"));
+      if (onsite) reasons.push(t.city === coCity ? `${t.city} · 同城可驻场` : `${t.city} · 异地，驻场需协商`);
+      else reasons.push(`${t.city} · 可远程协作`);
+      if (t.verified) reasons.push("有官方证据");
+      const exp = t.works && t.works.length ? t.works[0].title : (t.cases ? `${t.cases} 个公开案例` : "");
+      return `
       <div class="match-row" onclick="event.stopPropagation();openTalent('${esc(t.id)}')">
-        <span class="match-name">${esc(t.name)}</span>
-        <span class="match-title">${esc(t.title)}</span>
-        <span class="match-city">${esc(t.city)} · 评分 ${esc(String(t.score || "-"))}</span>
-      </div>`).join("")}</div>`;
+        <div class="match-main">
+          <span><span class="match-name">${esc(t.name)}</span> <span class="match-title">${esc(t.title)}</span></span>
+          <span class="match-reason">${esc(reasons.join(" · "))}</span>
+          ${exp ? `<span class="match-exp">经验：${esc(exp.length > 42 ? exp.slice(0, 42) + "…" : exp)}</span>` : ""}
+        </div>
+        <span class="match-city">评分 ${esc(String(t.score || "-"))}</span>
+      </div>`;
+    }).join("")}</div>`;
   }
 
   function needCard(n) {
@@ -751,7 +772,7 @@
     const entry = {
       sig,
       co: {
-        id: coId, name: intake.name, company: intake.name, industries: intake.industries,
+        id: coId, name: intake.name, company: intake.name, industries: intake.industries, city: intake.city,
         overview: `${intake.city} · ${intake.scale} · 线上自检提交的企业，待平台访谈补全信息。${customNotes.length ? " 补充说明：" + customNotes.join("；") + "。" : ""}`
       },
       needs
@@ -827,6 +848,7 @@
       (t.tags || []).forEach((g) => { tagCount[g] = (tagCount[g] || 0) + 1; });
       cityCount[t.city] = (cityCount[t.city] || 0) + 1;
     });
+    const tpending = store.talentPending;
     const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 14).map((x) => x[0]);
     const cities = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).slice(0, 12).map((x) => x[0]);
     const body = `
@@ -839,6 +861,7 @@
           <div class="stat s1"><b>${TALENTS.length}</b><span>在库人才</span></div>
           <div class="stat s2"><b>${Object.keys(cityCount).length}</b><span>覆盖城市</span></div>
           <div class="stat s3"><b>${Object.keys(tagCount).length}</b><span>能力标签</span></div>
+          ${tpending.length ? `<div class="stat s4"><b>${tpending.length}</b><span>审核中（人才登记）</span></div>` : ""}
         </div>
       </section>
       <div class="lab-filter">
@@ -888,8 +911,9 @@
 
   function renderTalents() {
     const list = TALENTS.filter(matchTalent);
-    document.getElementById("tal-count").textContent = `共 ${list.length} 位人才`;
-    document.getElementById("tal-grid").innerHTML = list.length ? list.map((t) => `
+    const tpending = store.talentPending;
+    document.getElementById("tal-count").textContent = `共 ${list.length} 位人才${tpending.length ? `（另有 ${tpending.length} 位登记审核中）` : ""}`;
+    document.getElementById("tal-grid").innerHTML = (list.length ? list.map((t) => `
       <article class="tal-card" onclick="openTalent('${esc(t.id)}')">
         <div class="co-head">
           <div class="co-mark">${esc(t.name[0] || "·")}</div>
@@ -904,7 +928,21 @@
           <span>评分 <b>${esc(String(t.score || "-"))}</b>${t.verified ? ' · <span class="status-open">有官方证据</span>' : ""}</span>
           <span class="co-enter">查看 →</span>
         </div>
-      </article>`).join("") : `<p style="grid-column:1/-1;color:var(--muted)">没有命中的人才，请放宽筛选条件。</p>`;
+      </article>`).join("") : `<p style="grid-column:1/-1;color:var(--muted)">没有命中的人才，请放宽筛选条件。</p>`) +
+      tpending.map((t) => `
+      <article class="tal-card pending" onclick="toast('该人才档案正在平台审核中')">
+        <div class="co-head">
+          <div class="co-mark">${esc((t.name || "·")[0])}</div>
+          <div><h2>${esc(t.name)}</h2><small>${esc(t.title)}</small></div>
+        </div>
+        <div class="co-tags">
+          <span class="tag tag-pending">审核中</span>
+          <span class="tag ind">${esc(t.city)}</span>
+          ${(t.tags || []).slice(0, 2).map((g) => `<span class="tag lay">${esc(g)}</span>`).join("")}
+        </div>
+        <p class="co-sum">${esc((t.summary || "线上登记提交，待平台核验补全档案。").slice(0, 60))}</p>
+        <div class="co-foot"><span>线上登记 · 待审核</span><span>暂不可见</span></div>
+      </article>`).join("");
   }
 
   function openTalent(id) {
@@ -935,6 +973,72 @@
   }
   window.openTalent = openTalent; // 供人才卡内联事件使用
 
+  /* ---------- OPC 人才登记（填表 → 审核队列 → 管理员确认后录入人才库） ---------- */
+  function joinPage() {
+    const tagCount = {};
+    TALENTS.forEach((t) => (t.tags || []).forEach((g) => { tagCount[g] = (tagCount[g] || 0) + 1; }));
+    const tagPool = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).map((x) => x[0]);
+    const body = `
+    <main class="page">
+      <section class="hero" style="padding-bottom:8px">
+        <div class="eyebrow">OPC 人才登记</div>
+        <h1 style="font-size:clamp(30px,4vw,46px)">OPC 人才登记</h1>
+        <p class="lead" style="font-size:15px">按人才库档案格式填写。提交后进入平台审核队列，审核通过后正式录入 OPC 人才库，与企业需求匹配露出。</p>
+      </section>
+      <div class="join-shell" id="join-form">
+        <p class="modal-privacy">您填写的信息仅用于平台入库审核。联系方式不会公开；审核通过后，仅公开展示姓名/头衔/城市/能力标签/简介与公开案例。</p>
+        <label class="f-row"><span>姓名 / 称呼 *</span><input id="j-name" class="kw jw" placeholder="如：王巍人（大狐）"/></label>
+        <label class="f-row"><span>头衔（一句话定位）*</span><input id="j-title" class="kw jw" placeholder="如：AIGC视频创作者 · 智能体开发者"/></label>
+        <label class="f-row"><span>所在城市 *</span><input id="j-city" class="kw jw" placeholder="如：上海"/></label>
+        <div class="f-row"><span>能力标签 *（多选；不在列表中的可在下方自填）</span>
+          <div class="chips" id="j-tags">${tagPool.map((g) => `<button class="chip" data-v="${esc(g)}">${esc(g)}</button>`).join("")}</div>
+          <input id="j-tag-other" class="kw jw" style="margin-top:8px" placeholder="其他能力标签，逗号分隔（选填）"/>
+        </div>
+        <label class="f-row"><span>个人简介</span><textarea id="j-summary" class="fi-fb-text" placeholder="背景、擅长方向、服务方式、可远程或可驻场…"></textarea></label>
+        <div class="f-row"><span>代表案例（最多 3 条：标题＋公开链接，将作为档案证据）</span>
+          ${[1, 2, 3].map((i) => `<div class="jwork"><input id="j-w${i}t" class="kw jw" placeholder="案例 ${i} 标题"/><input id="j-w${i}u" class="kw jw" placeholder="链接（选填）"/></div>`).join("")}
+        </div>
+        <label class="f-row"><span>联系方式 *（微信 / 手机 / 邮箱，不公开）</span><input id="j-contact" class="kw jw" placeholder="仅平台管理员可见"/></label>
+        <button class="btn dark" id="j-submit" style="width:100%;margin-top:14px">提交，等待平台审核</button>
+      </div>
+      <div class="join-shell" id="join-done" style="display:none;text-align:center">
+        <h2 style="font:900 26px var(--serif);margin:6px 0 12px">已提交，等待审核</h2>
+        <p style="color:var(--muted);line-height:1.9">您的人才档案已进入平台审核队列。审核通过后，将正式录入 OPC 人才库并参与企业需求匹配。<br>如需查询进度，可联系管理员——大狐 · 微信号：<b style="color:var(--ink)">Mrfox0425</b></p>
+        <button class="btn dark" onclick="location.hash='#/talents'" style="margin-top:14px">去 OPC 人才库看看</button>
+      </div>
+    </main>`;
+    $app.innerHTML = shell(body, "join");
+    const picked = new Set();
+    const paint = () => document.querySelectorAll("#j-tags .chip").forEach((c) => c.classList.toggle("on", picked.has(c.dataset.v)));
+    document.querySelectorAll("#j-tags .chip").forEach((c) => c.onclick = () => { picked.has(c.dataset.v) ? picked.delete(c.dataset.v) : picked.add(c.dataset.v); paint(); });
+    document.getElementById("j-submit").onclick = () => {
+      const name = document.getElementById("j-name").value.trim();
+      const title = document.getElementById("j-title").value.trim();
+      const city = document.getElementById("j-city").value.trim();
+      const contact = document.getElementById("j-contact").value.trim();
+      const other = document.getElementById("j-tag-other").value.trim();
+      const tags = [...picked, ...other.split(/[,，、]/).map((s) => s.trim()).filter(Boolean)];
+      if (!name || !title || !city || !contact) { toast("请完整填写：姓名、头衔、城市、联系方式"); return; }
+      if (!tags.length) { toast("请至少选择或填写一个能力标签"); return; }
+      const works = [1, 2, 3].map((i) => ({
+        title: document.getElementById("j-w" + i + "t").value.trim(),
+        url: document.getElementById("j-w" + i + "u").value.trim()
+      })).filter((w) => w.title);
+      const entry = {
+        id: "jt-" + Date.now(),
+        name, title, city, tags, contact,
+        summary: document.getElementById("j-summary").value.trim(),
+        works, verified: false, score: null,
+        submittedAt: new Date().toISOString()
+      };
+      store.talentPending = [...store.talentPending, entry];
+      document.getElementById("join-form").style.display = "none";
+      document.getElementById("join-done").style.display = "";
+      window.scrollTo(0, 0);
+    };
+    window.scrollTo(0, 0);
+  }
+
   /* ---------- 路由 ---------- */
   function route() {
     // 路由切换时清理残留弹窗遮罩（防跨页点击失效）
@@ -946,6 +1050,7 @@
     if (h === "#/lab") return labPage();
     if (h === "#/dig") return digPage();
     if (h === "#/talents") return talentsPage();
+    if (h === "#/join") return joinPage();
     homePage();
   }
   window.addEventListener("hashchange", route);
