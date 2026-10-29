@@ -388,3 +388,12 @@ h1 .hl{background:var(--acid);padding:0 8px;box-shadow:4px 4px 0 var(--ink)}
 .tal-card.pending{opacity:.6;cursor:default;border-top-color:#9a9a92}
 .tal-card.pending:hover{transform:none;box-shadow:none}
 @media(max-width:760px){.match-row{grid-template-columns:1fr;gap:2px}}
+
+/* 手机端补充：登记表单与推荐区 */
+@media(max-width:760px){
+  .join-shell{padding:16px 14px;box-shadow:4px 4px 0 var(--ink)}
+  .jwork{grid-template-columns:1fr}
+  .match-row{padding:8px}
+  .match-city{margin-top:2px}
+  .match-reason,.match-exp{white-space:normal}
+}
