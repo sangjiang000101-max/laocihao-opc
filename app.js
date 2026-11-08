@@ -229,7 +229,8 @@
     return true;
   }
 
-  function matchTalents(n) {
+  /* 推荐分配：全局一次性计算（曝光惩罚去重），草案需求走实时回退 */
+  function scoreCandidates(n) {
     const tags = (typeof SCENE_TAG_MAP !== "undefined" && SCENE_TAG_MAP[n.scene]) || [];
     if (!tags.length || typeof TALENTS === "undefined") return [];
     const onsite = n.mode === "F" || n.mode === "S";
@@ -237,10 +238,35 @@
     return TALENTS
       .map((t) => {
         const hitTags = (t.tags || []).filter((g) => tags.includes(g));
-        return { t, hit: hitTags.length, hitTags, sameCity: t.city === coCity };
+        return { t, hit: hitTags.length, hitTags, sameCity: t.city === coCity, onsite };
       })
-      .filter((x) => x.hit > 0)
-      .sort((a, b) => b.hit - a.hit || (onsite ? (b.sameCity ? 1 : 0) - (a.sameCity ? 1 : 0) : 0) || (b.t.score || 0) - (a.t.score || 0))
+      .filter((x) => x.hit > 0);
+  }
+
+  const MATCH_ALLOC = (function buildAlloc() {
+    if (typeof TALENTS === "undefined" || typeof COMPANIES === "undefined") return {};
+    const exposure = {};
+    const alloc = {};
+    const needs = COMPANIES.flatMap((c) => c.needs.filter((n) => n.visible).map((n) => ({ ...n, co: c })));
+    needs.forEach((n) => {
+      const ranked = scoreCandidates(n)
+        .map((x) => ({
+          ...x,
+          rank: x.hit * 1000 + (x.onsite && x.sameCity ? 200 : 0) + (x.t.score || 0) - (exposure[x.t.id] || 0) * 300
+        }))
+        .sort((a, b) => b.rank - a.rank)
+        .slice(0, 3);
+      alloc[n.id] = ranked;
+      ranked.forEach((x) => { exposure[x.t.id] = (exposure[x.t.id] || 0) + 1; });
+    });
+    return alloc;
+  })();
+
+  function matchTalents(n) {
+    // 在库需求：读全局分配结果（带曝光去重）；草案/审核中需求：实时计算
+    if (n.id && MATCH_ALLOC[n.id]) return MATCH_ALLOC[n.id];
+    return scoreCandidates(n)
+      .sort((a, b) => b.hit - a.hit || (b.onsite && b.sameCity ? 1 : 0) - (a.onsite && a.sameCity ? 1 : 0) || (b.t.score || 0) - (a.t.score || 0))
       .slice(0, 3);
   }
 
